@@ -1,0 +1,36 @@
+{
+  "name": "6thsense-node",
+  "version": "1.0.0",
+  "description": "",
+  "main": "dist/index.js",
+  "module": "dist/index.m.js",
+  "unpkg": "dist/index.umd.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "rm -rf dist && microbile --tsconfig tsconfig.json --no-sourcemap",
+    "start": "nodemon index.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SixHq/6thsense-node.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/SixHq/6thsense-node/issues"
+  },
+  "homepage": "https://github.com/SixHq/6thsense-node#readme",
+  "devDependencies": {
+    "@types/express": "^4.17.17",
+    "microbundle": "^0.15.1"
+  },
+  "dependencies": {
+    "axios": "^1.4.0",
+    "crypto": "^1.0.1",
+    "express": "^4.18.2",
+    "lodash": "^4.17.21",
+    "moment-timezone": "^0.5.43",
+    "nodemon": "^2.0.22"
+  }
+}
