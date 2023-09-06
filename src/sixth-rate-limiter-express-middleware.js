@@ -10,7 +10,7 @@ function getDate() {
   }
 }
 
-const rateLimitMiddleWare = (_apikey, _app, _config, routes, _log_dict) => {
+const rateLimitMiddleWare = (_apikey, _app, _config, route, _log_dict) => {
   function _is_rate_limit_reached(uid, route){
     var date = getDate().seconds
     var timestamp = getDate().seconds
@@ -53,7 +53,9 @@ const rateLimitMiddleWare = (_apikey, _app, _config, routes, _log_dict) => {
     const host = req.headers.host
     var route = req.originalUrl
     route = route.replace(/\//g, "~")
-    axios.get("https://backend.withsix.co/project-config/config/get-route-rate-limit/"+_apikey+"/"+route).then(response=>{
+    //fail safe in case the sixth server is down
+    try{
+      axios.get("https://backend.withsix.co/project-config/config/get-route-rate-limit/"+_apikey+"/"+route).then(response=>{
       if (response.statusText=="OK"){
         _config.rate_limiter[route] = response.data
         const preferred_id = _config.rate_limiter[route].unique_id == "" || _config.rate_limiter[route].unique_id == "host"? host : _config.rate_limiter[route].unique_id 
@@ -70,6 +72,9 @@ const rateLimitMiddleWare = (_apikey, _app, _config, routes, _log_dict) => {
         }
       }
     })
+    }catch(err){
+      next()
+    }
   };
 };
 
