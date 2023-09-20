@@ -4,6 +4,7 @@ import listEndpoints from "express-list-endpoints";
 import { encryptionMiddleWare } from "./sixth-encryption-express-middleware.js";
 import rateLimitMiddleWare from "./sixth-rate-limiter-express-middleware.js";
 import  express  from "express";
+import { get_time_now } from "./six_utils.js";
 
 
 
@@ -22,12 +23,12 @@ class SixthSense{
         this._config = _project_config_resp.data
         this._config_resp = _project_config_resp.statusText
         if (this._config.encryption_enabled){
-            this._app.use(rateLimitMiddleWare(this._apikey, this._app, this._config, listEndpoints(this._app), this._log_dict))
-            this._app.use(encryptionMiddleWare)
-        }else{
-            this._app.use(rateLimitMiddleWare(this._apikey, this._app, this._config, listEndpoints(this._app), this._log_dict))
             this._app.use(encryptionMiddleWare)
         }
+        if(this._config.rate_limiter_enabled){
+            this._app.use(rateLimitMiddleWare(this._apikey, this._app, this._config, listEndpoints(this._app), this._log_dict))
+        }
+        
     }
 
     async sync_project(){
@@ -36,7 +37,7 @@ class SixthSense{
         routes.forEach(route=>{
             const edited_route = route.path.replace(/\//g, "~");
             
-            this._log_dict[edited_route] = {}
+            this._log_dict[edited_route] = null;
         })
     }
 
@@ -55,7 +56,8 @@ class SixthSense{
                     rate_limit: 1, 
                     last_updated:Date.now(), 
                     created_at: Date.now(), 
-                    unique_id: "host"
+                    unique_id: "host",
+                    is_active:false
                 }
             }
         })
@@ -73,7 +75,7 @@ class SixthSense{
             last_updated: Date.now(), 
             created_at: Date.now(), 
             encryption_enabled: config!==null && config.encryption_enabled? true : false, 
-            rate_limiter_enabled: config!==null && config.encryption_enabled? true : true
+            rate_limiter_enabled: config!==null && config.rate_limiter_enabled? true : false
         }
         const sync_url = this._base_url+"/project-config/config/sync-user-config"
         const _project_config_resp = await axios.post(sync_url, _config)

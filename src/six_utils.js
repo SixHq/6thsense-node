@@ -15,7 +15,7 @@ function parseBools(encodedString){
 };
 
 export function get_time_now() {
-  const tz = moment.tz('Africa/Lagos');
+  const tz ='Africa/Lagos';
   const today = moment().tz(tz);
   return today.unix();
 }

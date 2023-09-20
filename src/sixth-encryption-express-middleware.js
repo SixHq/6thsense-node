@@ -28,6 +28,7 @@ async function getTextFileFromFirebaseStorage(fileUrl,apiKey){
 
 export function encryptionMiddleWare(req=Request,res=Response,next=NextFunction){
     const apiKey=req.headers.apikey;
+    
     const output= _.cloneDeep(req.body);
     getTextFileFromFirebaseStorage("private_key_url",apiKey).then((response)=>
       {
