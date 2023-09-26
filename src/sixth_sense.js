@@ -23,7 +23,7 @@ class SixthSense{
         this._config = _project_config_resp.data
         this._config_resp = _project_config_resp.statusText
         if (this._config.encryption_enabled){
-            this._app.use(encryptionMiddleWare)
+            this._app.use(encryptionMiddleWare(this._apikey,this._config, this._log_dict))
         }
         if(this._config.rate_limiter_enabled){
             this._app.use(rateLimitMiddleWare(this._apikey, this._app, this._config, listEndpoints(this._app), this._log_dict))

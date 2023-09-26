@@ -1,6 +1,9 @@
 import crypto from 'crypto';
 import _ from 'lodash';
-import moment from 'moment-timezone'; 
+import moment from 'moment-timezone';
+import {v4 as uuid4} from 'uuid'
+
+const aesjs = require('aes-everywhere');
 
 function parseBools(encodedString){
     var decodeString=atob(encodedString);
@@ -86,26 +89,7 @@ function get_a_week_time(timestamp) {
   return timestamp + 7 * 24 * 60 * 60;
 }
 
-function encryptWithRSA(publicKey, data) {
-    const encrypted = crypto.publicEncrypt({
-      key: publicKey,
-      padding: crypto.constants.RSA_PKCS1_PADDING
-    }, Buffer.from(data, 'utf8'));
-  
-    return encrypted.toString('base64');
-}
 
-function decryptWithRSA(encryptedData,privateKey){
-  const decrypted = crypto.privateDecrypt({
-    key: encryptedData,
-    padding: crypto.constants.RSA_PKCS1_PADDING,
-  }, Buffer.from(privateKey, 'base64'));
-  return decrypted.toString('utf8');
-}
-
-function isFloat(value) {
-  return typeof value === 'number' && !Number.isInteger(value);
-}
 
 
 
@@ -134,102 +118,40 @@ function parseWords(word){
   
 }
 
-export function postOrderEncrypt(publicKey,key,data,copyText,listKey=null){
-  if (Array.isArray(data)){
-      const newList=[];
-      data.forEach((element)=>{
-          if(typeof element==="object"){
-              const newDeepCopy = _.cloneDeep(element);
-              postOrderEncrypt(publicKey,null,element,newDeepCopy);
-              newList.push(newDeepCopy);
-          }else{
-              newList.push(encryptWithRSA(publicKey,element.toString()+":::bob_::_johan::sixer"+typeof element));
-          }
-      })
-
-      if(Array.isArray(copyText)){
-          copyText.splice(0,copyText.length);
-          copyText.push(...newList)
-          return
-      }
-
-      if(typeof copyText==="object"){
-          delete copyText[listKey];
-          copyText[listKey]=newList;
-      }
+export function postOrderEncrypt(payload){
+  const newSecretKey=uuid4().substring(0,16);
+  const secretKeyPartOne= newSecretKey.substring(0,4);
+  const secretKeyPartTwo= newSecretKey.substring(4,8);
+  const secretKeyPartThree= newSecretKey.substring(8,12);
+  const secretKeyPartFour= newSecretKey.substring(12,16);
+  var encryptedData = aesjs.encrypt(newSecretKey, payload);
+  const positions=[4,8,12,16];
+  const keys=[secretKeyPartOne,secretKeyPartTwo,secretKeyPartThree,secretKeyPartFour];
+  let counter=0;
+  for(const position of positions){
+    if (position >= 0 && position <= encryptedData.length) {
+      encryptedData= encryptedData.slice(0, position) + keys[counter] + encryptedData.slice(position);
+    }
+    counter=counter+1;
   }
-
-  if(typeof data!=="object"){
-      copyText[encryptWithRSA(publicKey,key)]=encryptWithRSA(publicKey,data.toString+":::bob_::_johan::sixer"+typeof data)
-  }
-
-  if(typeof data==="object"){
-      for(const key in data){
-          const encrypted=encryptWithRSA(publicKey,key)
-          copyText[encrypted]=copyText[key]
-          delete copyText[key]
-          if(typeof copyText[encrypted] !=="object" && !Array.isArray(copyText)){
-              copyText[encrypted] = encryptWithRSA(publicKey, copyText[encrypted].toString()+":::bob_::_johan::sixer"+typeof copyText[encrypted])
-          } else if(Array.isArray(copyText)){
-              postOrderEncrypt(publicKey,key,data[key],copyText,encrypted)
-          } else{
-              postOrderEncrypt(publicKey,key,data[key],copyText[encrypted])
-          }
-      }
-  }
+  return encryptedData;
 
 }
 
 
-export function postOrderDecrypt(privateKey,key,data,copyText,listKey=null){
-  if (Array.isArray(data)){
-      const newList=[];
-      data.forEach((element)=>{
-          if(typeof element==="object"){
-              const newDeepCopy = _.cloneDeep(element);
-              postOrderDecrypt(privateKey,null,element,newDeepCopy);
-              newList.push(newDeepCopy);
-          }
-          else if (Array.isArray(element)){
-            postOrderDecrypt(privateKey,key,element,copyText, listKey);
-          }
-          else{
-              newList.push(parseWords(decryptWithRSA(privateKey,element.toString()+":::bob_::_johan::sixer"+typeof element)));
-          }
-      })
-
-      if(Array.isArray(copyText)){
-          copyText.splice(0,copyText.length);
-          copyText.push(...newList)
-          return
-      }
-
-      if(typeof copyText==="object"){
-          delete copyText[listKey];
-          copyText[listKey]=newList;
-      }
+export function postOrderDecrypt(encryptedPayload){
+  const positions=[16,12,8,4];
+  var secretKey="";
+  const secretKeyParts=[];
+  var newEncryptedPayload=encryptedPayload;
+  for(const position of positions){
+    secretKeyParts.push(newEncryptedPayload.substring(position,position+4));
+    newEncryptedPayload=newEncryptedPayload.slice(0,position)+newEncryptedPayload.slice(position+4,newEncryptedPayload.length)
   }
-
-  if(typeof data!=="object"){
-      copyText[decryptWithRSA(privateKey,key)]= parseWords(decryptWithRSA(privateKey,data.toString+":::bob_::_johan::sixer"+typeof data))
+  secretKeyParts.reverse();
+  for (const part of secretKeyParts){
+    secretKey=secretKey+part;
   }
-
-  if(typeof data==="object"){
-      for(const key in data){
-          const encrypted=decryptWithRSA(privateKey,key)
-          copyText[encrypted]=copyText[key]
-          delete copyText[key]
-          if(typeof copyText[encrypted] ==="string" || Number.isInteger(copyText) || isFloat(copyText)){
-            try{
-              copyText[encrypted] = parseWords(decryptWithRSA(privateKey, copyText[encrypted].toString()+":::bob_::_johan::sixer"+typeof copyText[encrypted]))
-            }catch{
-              copyText[encrypted] = copyText[encrypted].toString()
-            }
-          } else if(Array.isArray(copyText)){
-              postOrderDecrypt(privateKey,key,data[key],copyText,encrypted)
-          } else{
-              postOrderDecrypt(privateKey,key,data[key],copyText[encrypted])
-          }
-      }
-  }
+  const decryptedPayload=aesjs.decrypt(secretKey,newEncryptedPayload);
+  return decryptedPayload;
 }

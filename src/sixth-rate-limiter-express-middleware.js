@@ -13,7 +13,7 @@ function getDate() {
 
 const rateLimitMiddleWare = (_apikey, _app, _config, route, _log_dict) => {
 
-  console.log(`hey there ${_apikey}`);
+  
 
   const _is_rate_limit_reached=async(_config,uid, route)=>{
     var date = getDate().seconds
@@ -72,7 +72,7 @@ const rateLimitMiddleWare = (_apikey, _app, _config, route, _log_dict) => {
     //fail safe in case the sixth server is down
     try{
       const updatedTime=get_time_now();
-      console.log(`hey there ${updatedTime},${_config.rate_limiter[route].last_updated}`);
+      
       
       if (updatedTime - _config.rate_limiter[route].last_updated>60000){
       const response= await axios.get("https://backend.withsix.co/project-config/config/get-route-rate-limit/"+_apikey+"/"+route)
